@@ -50,6 +50,7 @@ public class SnakeSelfIntersectionHandler : MonoBehaviour
     {
         PrepareFrame();
         PushUpIntersectingSegments();
+        PropogateBack();
         PushDownNonIntersectingSegments();
     }
 
@@ -101,27 +102,44 @@ public class SnakeSelfIntersectionHandler : MonoBehaviour
                 visPos.y = Mathf.Min(visPos.y, 3f);
                 visTrans.localPosition = visPos;
                 bodySegments[i].pushedUpThisFrame = true;
+            }
+        }
+    }
 
-                // TODO bdsowers
-                // Apply a dampening influence to some of the preceding points to not make the transition
-                // so rough.
-                // This doesn't feel quite right yet.
-                int numBacktracks = 5;
-                for (int backtrack = 1; backtrack < numBacktracks; backtrack++)
+    private void PropogateBack()
+    {
+        // Propogate upward pushes backward to create a smoother effect.
+        // go in reverse order (tail -> head)
+        List<SnakeBodySegment> bodySegments = bodyHandler.bodySegments;
+        for (int i = bodySegments.Count - 1; i >= 0; i--)
+        {
+            SnakeBodySegment segment = bodySegments[i];
+
+            // We only backtrack from segments which have been pushed up because of self-intersection
+            if (!segment.pushedUpThisFrame)
+            {
+                continue;
+            }
+
+            // TODO bdsowers
+            // Apply a dampening influence to some of the preceding points to not make the transition
+            // so rough.
+            // This doesn't feel quite right yet.
+            int numBacktracks = 5;
+            for (int backtrack = 1; backtrack < numBacktracks; backtrack++)
+            {
+                float normDist = (float)(backtrack - 1) / (float)(numBacktracks - 1);
+                float invNormDist = (1.0f - normDist);
+                float maxHeight = 3f * invNormDist + 0.2f;
+
+                if (i + backtrack < bodySegments.Count && !bodySegments[i + backtrack].pushedUpThisFrame)
                 {
-                    float normDist = (float)(backtrack - 1) / (float)(numBacktracks - 1);
-                    float invNormDist = (1.0f - normDist);
-                    float maxHeight = 3f * invNormDist + 0.2f;
-
-                    if (i + backtrack < bodySegments.Count)
-                    {
-                        Transform next = bodySegments[i + backtrack].visual;
-                        Vector3 pos = next.localPosition;
-                        pos += Vector3.up * Time.deltaTime * invNormDist * 5f;
-                        pos.y = Mathf.Min(pos.y, maxHeight);
-                        next.localPosition = pos;
-                        bodySegments[i + backtrack].pushedUpThisFrame = true;
-                    }
+                    Transform next = bodySegments[i + backtrack].visual;
+                    Vector3 pos = next.localPosition;
+                    pos += Vector3.up * Time.deltaTime * invNormDist * 5f;
+                    pos.y = Mathf.Min(pos.y, maxHeight);
+                    next.localPosition = pos;
+                    bodySegments[i + backtrack].pushedUpThisFrame = true;
                 }
             }
         }
