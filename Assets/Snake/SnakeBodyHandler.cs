@@ -15,6 +15,13 @@ public class SnakeBodyHandler : MonoBehaviour
 
     float movementAmountTracker = 0f;
 
+    List<SnakeBodySegment> mBodySegments = new List<SnakeBodySegment>();
+
+    public List<SnakeBodySegment> bodySegments
+    {
+        get { return mBodySegments; }
+    }
+
     public enum MoveDirection
     {
         Forward,
@@ -37,6 +44,14 @@ public class SnakeBodyHandler : MonoBehaviour
             GameObject newSegment = GameObject.Instantiate(baseBodySegment, transform);
             newSegment.transform.localPosition = baseBodySegment.transform.localPosition + (i + 1) * separation * axis;
             prevPositions.Add(newSegment.transform.localPosition);
+        }
+
+        // Construct the body segment list
+        for (int i = 0; i < transform.childCount; ++i)
+        {
+            Transform child = transform.GetChild(i);
+            SnakeBodySegment bodySegment = child.GetComponent<SnakeBodySegment>();
+            mBodySegments.Add(bodySegment);
         }
     }
 
@@ -115,16 +130,15 @@ public class SnakeBodyHandler : MonoBehaviour
 
     private void UpdateLookDirection()
     {
-        for (int i = 1; i < numBodySegments; ++i)
+        for (int i = 1; i < bodySegments.Count; ++i)
         {
-            Transform bodySegment = transform.GetChild(i);
-            Transform prevSegment = transform.GetChild(i - 1);
+            SnakeBodySegment bodySegment = bodySegments[i];
+            SnakeBodySegment prevSegment = bodySegments[i - 1];
 
-            // TODO bdsowers - is this right??
-            //bodySegment.transform.LookAt(bodySegment.transform.position + direction);
-
-            Vector3 dir = (prevSegment.GetChild(0).position - bodySegment.GetChild(0).position);
-            bodySegment.GetChild(0).transform.LookAt(bodySegment.transform.position - dir);
+            // Set the look at direction to look from one VISUAL portion of the segment to another.
+            // This works better for when we need to do mesh construction.
+            Vector3 dir = (prevSegment.visual.position - bodySegment.visual.position);
+            bodySegment.visual.transform.LookAt(bodySegment.transform.position - dir);
 
             Debug.DrawLine(bodySegment.transform.position, bodySegment.transform.position + dir, Color.red);
         }
@@ -134,9 +148,9 @@ public class SnakeBodyHandler : MonoBehaviour
     {
         movementAmountTracker = 0;
 
-        for (int i = 0; i < numBodySegments; ++i)
+        for (int i = 0; i < bodySegments.Count; ++i)
         {
-            prevPositions[i] = transform.GetChild(i).localPosition;
+            prevPositions[i] = bodySegments[i].transform.localPosition;
         }
     }
 

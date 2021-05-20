@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class SnakeSelfIntersectionHandler : MonoBehaviour
 {
+    [SerializeField] private SnakeBodyHandler bodyHandler;
+
     private bool SegmentIntersectsSphere(
         Vector3 p1, Vector3 p2,
         Vector3 sphereCenter, float sphereRadius,
@@ -46,19 +48,26 @@ public class SnakeSelfIntersectionHandler : MonoBehaviour
     // roughly an O(N^2) operation.
     private void ResolveIntersections()
     {
-        for (int i = 0; i < transform.childCount; ++i)
+        List<SnakeBodySegment> bodySegments = bodyHandler.bodySegments;
+        for (int i = 0; i < bodySegments.Count; ++i)
         {
-            Vector3 sphereCenter = transform.GetChild(i).localPosition;
+            bodySegments[i].pushedUpThisFrame = false;
+        }
+
+        // Handle pushing up anything that's self intersecting
+        for (int i = 0; i < bodySegments.Count; ++i)
+        {
+            Vector3 sphereCenter = bodySegments[i].transform.localPosition;
             float sphereRadius = 4f;
 
-            Transform visTrans = transform.GetChild(i).GetChild(0);
-            Vector3 visPos = transform.GetChild(i).GetChild(0).localPosition;
+            Transform visTrans = bodySegments[i].visual;
+            Vector3 visPos = visTrans.localPosition;
 
             bool intersection = false;
-            for (int j = i + 10; j < transform.childCount - 1; ++j)
+            for (int j = i + 10; j < bodySegments.Count - 1; ++j)
             {
-                Vector3 p1 = transform.GetChild(j).localPosition;
-                Vector3 p2 = transform.GetChild(j + 1).localPosition;
+                Vector3 p1 = bodySegments[j].transform.localPosition;
+                Vector3 p2 = bodySegments[j + 1].transform.localPosition;
 
                 float d1 = 0, d2 = 0;
                 if (SegmentIntersectsSphere(p1, p2, sphereCenter, sphereRadius, out d1, out d2))
@@ -80,6 +89,7 @@ public class SnakeSelfIntersectionHandler : MonoBehaviour
                 visPos += Vector3.up * Time.deltaTime * 20f;
                 visPos.y = Mathf.Min(visPos.y, 3f);
                 visTrans.localPosition = visPos;
+                bodySegments[i].pushedUpThisFrame = true;
 
                 // TODO bdsowers
                 // Apply a dampening influence to some of the preceding points to not make the transition
@@ -89,15 +99,24 @@ public class SnakeSelfIntersectionHandler : MonoBehaviour
                 {
                     if (i + backtrack < transform.childCount)
                     {
-                        Transform next = transform.GetChild(i + backtrack).GetChild(0);
+                        Transform next = bodySegments[i + backtrack].visual;
                         Vector3 pos = next.localPosition;
                         pos += Vector3.up * Time.deltaTime * (20f - backtrack * 4) * 0.5f;
                         pos.y = Mathf.Min(pos.y, 3f);
                         next.localPosition = pos;
+                        bodySegments[i + backtrack].pushedUpThisFrame = true;
                     }
                 }
             }
-            else
+        }
+
+        // Handle pushing down anything that's in the air and shouldn't be
+        for (int i = 0; i < bodySegments.Count; ++i)
+        {
+            Transform visTrans = bodySegments[i].visual;
+            Vector3 visPos = visTrans.localPosition;
+
+            if (!bodySegments[i].pushedUpThisFrame)
             {
                 visPos += Vector3.down * Time.deltaTime * 5f;
                 visPos.y = Mathf.Max(0f, visPos.y);

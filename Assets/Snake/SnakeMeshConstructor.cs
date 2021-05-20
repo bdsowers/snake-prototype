@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class SnakeMeshConstructor : MonoBehaviour
 {
+    [SerializeField] private SnakeBodyHandler bodyHandler;
+
     public MeshFilter meshFilter;
     Mesh mesh;
 
@@ -23,11 +25,15 @@ public class SnakeMeshConstructor : MonoBehaviour
         int numVerticesPerSegment = 0;
         float segmentRadius = 2f;
 
-        for (int i = 1; i < transform.childCount - 1; ++i)
+        List<SnakeBodySegment> bodySegments = bodyHandler.bodySegments;
+        for (int i = 1; i < bodySegments.Count - 1; ++i)
         {
-            Transform prev = transform.GetChild(i - 1).GetChild(0);
-            Transform curr = transform.GetChild(i).GetChild(0);
-            Transform next = transform.GetChild(i + 1).GetChild(0);
+            // We construct our cylinder about the visual portions of the body segment, not the root.
+            // This is to account for self intersection and other adjustments we want to make
+            // that don't influence the snake's path but are still necessary to show visually.
+            Transform prev = bodySegments[i - 1].visual;
+            Transform curr = bodySegments[i].visual;
+            Transform next = bodySegments[i + 1].visual;
 
             Vector3 currToPrev = (prev.transform.position - curr.transform.position);
             Vector3 currToNext = (next.transform.position - curr.transform.position);
@@ -54,6 +60,7 @@ public class SnakeMeshConstructor : MonoBehaviour
             }
 
             float adjustedSegmentRadius = segmentRadius * taperModifier;
+            bodySegments[i].thickness = adjustedSegmentRadius;
 
             // Construct the points
             numVerticesPerSegment = 0;
@@ -68,6 +75,7 @@ public class SnakeMeshConstructor : MonoBehaviour
                 normal.Normalize();
                 normals.Add(normal);
 
+                // TODO bdsowers - this is pretty much meaningless
                 Vector2 uv = Vector2.zero;
                 uv.y = j / 360f;
                 uv.x = i / transform.childCount * 10f;
