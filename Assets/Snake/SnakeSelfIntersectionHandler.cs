@@ -76,17 +76,21 @@ public class SnakeSelfIntersectionHandler : MonoBehaviour
             Vector3 visPos = visTrans.localPosition;
 
             bool intersection = false;
+            float intersectionHeight = 0;
             for (int j = i + 10; j < bodySegments.Count - 1; ++j)
             {
-                Vector3 p1 = bodySegments[j].transform.localPosition;
-                Vector3 p2 = bodySegments[j + 1].transform.localPosition;
+                SnakeBodySegment bs1 = bodySegments[j];
+                SnakeBodySegment bs2 = bodySegments[j + 1];
+                Vector3 p1 = bs1.transform.localPosition;
+                Vector3 p2 = bs2.transform.localPosition;
 
                 float d1 = 0, d2 = 0;
                 if (SegmentIntersectsSphere(p1, p2, sphereCenter, sphereRadius, out d1, out d2))
                 {
                     intersection = true;
 
-                    //Debug.DrawLine(transform.GetChild(i).position, transform.GetChild(i).position + Vector3.up * 5, Color.blue);
+                    float height = Mathf.Max(bs1.thickness, bs2.thickness);
+                    intersectionHeight = Mathf.Max(intersectionHeight, height);
                 }
             }
 
@@ -99,7 +103,7 @@ public class SnakeSelfIntersectionHandler : MonoBehaviour
                 // TODO bdsowers : Tapering needs to be accounted for in height limit, maybe propogate that
                 // down to the segments so they can notify this.
                 visPos += Vector3.up * Time.deltaTime * 20f;
-                visPos.y = Mathf.Min(visPos.y, 3f);
+                visPos.y = Mathf.Min(visPos.y, intersectionHeight * 2f);
                 visTrans.localPosition = visPos;
                 bodySegments[i].pushedUpThisFrame = true;
             }
