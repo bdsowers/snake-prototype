@@ -48,12 +48,23 @@ public class SnakeSelfIntersectionHandler : MonoBehaviour
     // roughly an O(N^2) operation.
     private void ResolveIntersections()
     {
+        PrepareFrame();
+        PushUpIntersectingSegments();
+        PushDownNonIntersectingSegments();
+    }
+
+    private void PrepareFrame()
+    {
         List<SnakeBodySegment> bodySegments = bodyHandler.bodySegments;
         for (int i = 0; i < bodySegments.Count; ++i)
         {
             bodySegments[i].pushedUpThisFrame = false;
         }
+    }
 
+    private void PushUpIntersectingSegments()
+    {
+        List<SnakeBodySegment> bodySegments = bodyHandler.bodySegments;
         // Handle pushing up anything that's self intersecting
         for (int i = 0; i < bodySegments.Count; ++i)
         {
@@ -114,7 +125,11 @@ public class SnakeSelfIntersectionHandler : MonoBehaviour
                 }
             }
         }
+    }
 
+    private void PushDownNonIntersectingSegments()
+    {
+        List<SnakeBodySegment> bodySegments = bodyHandler.bodySegments;
         // Handle pushing down anything that's in the air and shouldn't be
         for (int i = 0; i < bodySegments.Count; ++i)
         {
