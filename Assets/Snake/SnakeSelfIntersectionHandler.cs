@@ -95,14 +95,19 @@ public class SnakeSelfIntersectionHandler : MonoBehaviour
                 // Apply a dampening influence to some of the preceding points to not make the transition
                 // so rough.
                 // This doesn't feel quite right yet.
-                for (int backtrack = 1; backtrack < 5; backtrack++)
+                int numBacktracks = 5;
+                for (int backtrack = 1; backtrack < numBacktracks; backtrack++)
                 {
-                    if (i + backtrack < transform.childCount)
+                    float normDist = (float)(backtrack - 1) / (float)(numBacktracks - 1);
+                    float invNormDist = (1.0f - normDist);
+                    float maxHeight = 3f * invNormDist + 0.2f;
+
+                    if (i + backtrack < bodySegments.Count)
                     {
                         Transform next = bodySegments[i + backtrack].visual;
                         Vector3 pos = next.localPosition;
-                        pos += Vector3.up * Time.deltaTime * (20f - backtrack * 4) * 0.5f;
-                        pos.y = Mathf.Min(pos.y, 3f);
+                        pos += Vector3.up * Time.deltaTime * invNormDist * 5f;
+                        pos.y = Mathf.Min(pos.y, maxHeight);
                         next.localPosition = pos;
                         bodySegments[i + backtrack].pushedUpThisFrame = true;
                     }
